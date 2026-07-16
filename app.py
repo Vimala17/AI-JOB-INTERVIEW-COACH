@@ -1,6 +1,5 @@
 import json
 import os
-import random
 from flask import Flask, render_template, request, jsonify, session
 from groq import Groq
 from dotenv import load_dotenv
@@ -11,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "vimala_ai_key_2026")
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# --- 1. Global Database (Backup kosam) ---
+# --- 1. Global Database ---
 def load_db_once():
     combined_db = {}
     data_dir = os.path.join(app.root_path, 'data')
@@ -45,11 +44,12 @@ def index():
 
 @app.route('/start_interview', methods=['POST'])
 def start_interview():
+    # Frontend nunchi FormData ni clean ga fetch chesukodaniki standard form reader
     session['role'] = request.form.get('role')
     session['language'] = request.form.get('language', 'English')
     session['question_count'] = 0
     session['scores'] = [] 
-    session['asked_questions'] = [] # Ikkada reset chesthunnam
+    session['asked_questions'] = []
     session.modified = True
     return jsonify({"status": "success"})
 
@@ -63,33 +63,38 @@ def generate_question():
     lang = session.get('language', 'English')
     asked = session.get('asked_questions', [])
     
-    # SYSTEM PROMPT
-    system_msg = f"You are a professional interviewer. You must ask questions ONLY in {lang} script."
+    # Absolute strict formatting parameters to force LLM to write in target script
+    lang_prompts = {
+        "Telugu": {
+            "system": "You are an AI Interviewer. You must generate the interview question strictly in Telugu language using native Telugu script characters (తెలుగు లిపి) only.",
+            "user": f"Generate a unique professional interview question for a {role} position. The 'question' string MUST be written completely in native Telugu script (తెలుగు అక్షరాలు). Do not translate into English letters. Previous questions asked in this session: {asked}. Output format must strictly be JSON: {{\"question\": \"తెలుగులో ప్రశ్న ఇక్కడ రాయండి\", \"keywords\": [\"english_keyword1\", \"english_keyword2\"]}}"
+        },
+        "Hindi": {
+            "system": "You are an AI Interviewer. You must generate the interview question strictly in Hindi language using native Devanagari script (हिंदी देवनागरी लिपि) only.",
+            "user": f"Generate a unique professional interview question for a {role} position. The 'question' string MUST be written completely in Hindi Devanagari script characters. Do not translate into English letters. Previous questions asked in this session: {asked}. Output format must strictly be JSON: {{\"question\": \"हिंदी में प्रश्न यहां लिखें\", \"keywords\": [\"english_keyword1\", \"english_keyword2\"]}}"
+        },
+        "English": {
+            "system": "You are an AI Interviewer. You must generate the interview question strictly in English.",
+            "user": f"Generate a unique professional interview question for a {role} position. Previous questions asked in this session: {asked}. Output format must strictly be JSON: {{\"question\": \"Your English question here\", \"keywords\": [\"keyword1\", \"keyword2\"]}}"
+        }
+    }
     
-    # USER PROMPT
-    user_msg = f"""
-    Generate a unique interview question for a {role} position.
-    The question must be in {lang} language.
-    Previous questions: {asked}
-    DO NOT REPEAT.
-    Return ONLY a JSON object with 'question' and 'keywords' (5 English keywords).
-    """
+    selected_prompt = lang_prompts.get(lang, lang_prompts["English"])
     
     try:
-        # CHANGED MODEL NAME HERE: llama-3.3-70b-versatile
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile", 
             messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_msg}
+                {"role": "system", "content": selected_prompt["system"]},
+                {"role": "user", "content": selected_prompt["user"]}
             ],
-            temperature=0.8,
+            temperature=0.6,  # Avoid formatting leaks
             response_format={"type": "json_object"}
         )
         
         res = json.loads(completion.choices[0].message.content)
         question_text = res.get('question')
-        keywords = res.get('keywords')
+        keywords = res.get('keywords', [])
         
         asked.append(question_text)
         session['asked_questions'] = asked
@@ -105,20 +110,18 @@ def generate_question():
 
     except Exception as e:
         print(f"!!! GROQ API ERROR: {e}") 
-        # Fallback based on language
         fallbacks = {
-            "Telugu": "మీ గత ప్రాజెక్ట్‌ల గురించి వివరించండి.",
-            "Hindi": "अपने पिछले प्रोजेक्ट्स के बारे में बताएं।",
-            "English": "Tell me about your previous projects."
+            "Telugu": f"మీరు ఎంచుకున్న {role} పాత్రకు సంబంధించి మీ గత ప్రాజెక్ట్‌ల అనుభవం గురించి వివరించండి.",
+            "Hindi": f"आपके द्वारा चुने गए {role} पद से संबंधित अपने पिछले प्रोजेक्ट्स के अनुभव के बारे में बताएं।",
+            "English": f"Tell me about your previous project experiences related to the {role} position."
         }
         q_text = fallbacks.get(lang, "Tell me about yourself.")
         return jsonify({
             "question": q_text, 
-            "keywords": ["experience", "work"], 
+            "keywords": ["experience", "project", "work"], 
             "count": count+1,
             "complete": False
         })
-    
     
 @app.route('/evaluate_answer', methods=['POST'])
 def evaluate_answer():
