@@ -1,0 +1,159 @@
+:root {
+    --main: #818cf8;
+    --sec: #c084fc;
+    --bg: #0f172a;
+    --glass: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.12);
+    --success: #10b981;
+}
+
+* {
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+body {
+    margin: 0;
+    /* Dynamic Gradient background */
+    background: radial-gradient(circle at top right, #2b1b4b, #100a1c);
+    color: white;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Glassmorphism Card Base */
+.glass-card { 
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    padding: 40px;
+    border-radius: 24px;
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+
+.wide-card { max-width: 800px; }
+
+/* Text Styles */
+.gradient-text { 
+    background: linear-gradient(135deg, var(--main), var(--sec));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.badge {
+    background: var(--main);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+/* Form Elements */
+select, textarea, input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: white;
+    padding: 14px;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    outline: none;
+}
+
+select:focus, textarea:focus { border-color: var(--main); }
+
+/* Buttons */
+.btn { 
+    background: linear-gradient(45deg, var(--main), var(--sec));
+    border: none;
+    padding: 14px 30px;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(135, 248, 129, 0.67);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(129, 140, 248, 0.5);
+}
+
+/* Voice/Mic UI */
+.textarea-container { position: relative; width: 100%; }
+
+.mic-circle {
+    position: absolute;
+    bottom: 35px; /* Textarea margin handle cheyadaniki */
+    right: 15px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: var(--main);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mic-active { 
+    animation: pulse 1.5s infinite;
+    background: #ef4444 !important; 
+}
+
+/* History Grid Styles */
+.history-grid {
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    border-left: 4px solid var(--main);
+}
+
+.score-tag {
+    color: var(--success);
+    font-weight: bold;
+}
+
+/* Animations */
+@keyframes pulse { 
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.animate-pop {
+    animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
