@@ -339,6 +339,32 @@
             cursor: pointer; font-size: 1.1rem; transition: 0.2s; padding: 0.2rem 0.5rem;
         }
         .btn-inline-delete:hover { color: #ef4444; transform: scale(1.15); }
+
+        /* ----- RESUME UPLOAD BOX ----- */
+        .resume-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px dashed rgba(167, 139, 250, 0.45);   /* dashed purple border = upload area feel */
+            border-radius: 1.8rem;
+            padding: 1.4rem 1.6rem;
+            margin: 1.5rem auto 0.5rem;
+            max-width: 480px;
+            backdrop-filter: blur(6px);
+        }
+        .resume-title { font-weight: 700; font-size: 1.05rem; color: #e0d7ff; margin-bottom: 0.4rem; }
+        .resume-title i { color: #f472b6; margin-right: 0.4rem; }
+        .resume-optional { opacity: 0.5; font-weight: 500; font-size: 0.85rem; }
+        .resume-hint { opacity: 0.6; font-size: 0.85rem; margin-bottom: 1rem; }
+
+        /* resume box lo buttons konchem chinna ga (global buttons peddavi) */
+        .resume-box .btn-primary,
+        .resume-box .btn-secondary,
+        .resume-box .btn-danger { padding: 0.65rem 1.3rem; font-size: 0.9rem; }
+        .resume-pick { max-width: 220px; overflow: hidden; }
+        .resume-pick span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+
+        .resume-status { margin-top: 0.9rem; font-size: 0.88rem; min-height: 1.2rem; }
+        .resume-status.success { color: #86efac; }
+        .resume-status.error { color: #fca5a5; }
     </style>
 </head>
 <body>
@@ -420,6 +446,24 @@
                     <button class="lang-pill" id="btn-te" onclick="setLang('Telugu')">🇮🇳 Telugu</button>
                     <button class="lang-pill" id="btn-hi" onclick="setLang('Hindi')">🇮🇳 Hindi</button>
                 </div>
+
+                <div class="resume-box">
+                    <div class="resume-title"><i class="fas fa-file-pdf"></i> Resume Upload <span class="resume-optional">(optional)</span></div>
+                    <p class="resume-hint">Resume upload chesthe, mee projects & skills base chesi questions vastayi.</p>
+
+                    <!-- native file input ni hide chesi, label ni button la vadutunnam -->
+                    <input type="file" id="resume-file" accept="application/pdf" class="hidden" onchange="onResumeChosen()">
+
+                    <div class="flex-center">
+                        <label for="resume-file" class="btn-secondary resume-pick">
+                            <i class="fas fa-paperclip"></i> <span id="resume-file-name">Choose PDF</span>
+                        </label>
+                        <button class="btn-primary" id="resume-upload-btn" onclick="uploadResume()"><i class="fas fa-wand-magic-sparkles"></i> Analyze</button>
+                        <button class="btn-danger hidden" id="resume-remove-btn" onclick="removeResume()" title="Remove resume"><i class="fas fa-trash-can"></i></button>
+                    </div>
+                    <p id="resume-status" class="resume-status"></p>
+                </div>
+
                 <button class="btn-primary w-full" style="max-width: 400px; margin-top: 1rem;" onclick="start()"><i class="fas fa-play"></i> Start Interview</button>
                 <p onclick="show('sec-dash')" style="margin-top:1.5rem; cursor:pointer; font-weight:bold; opacity:0.6;">← Back to Fields</p>
             </div>
@@ -528,6 +572,7 @@
             if(target) target.classList.remove('hidden'); 
             
             if(id === 'sec-dash') renderFields();
+            if(id === 'sec-role') checkResumeStatus();   // NEW: role screen ki vachinappudu resume status check
         }
 
         function toggleAuth(mode) {
@@ -714,6 +759,66 @@
             rec.lang = selectedLang === 'Telugu' ? 'te-IN' : (selectedLang === 'Hindi' ? 'hi-IN' : 'en-US');
             rec.onresult = (e) => { document.getElementById('ans').value += e.results[0][0].transcript + " "; };
             rec.start();
+        }
+
+        // ----- RESUME FEATURE (NEW) -----
+        function setResumeStatus(msg, type) {
+            const el = document.getElementById('resume-status');
+            el.innerText = msg;                                   // innerText vadithe XSS safe
+            el.className = 'resume-status' + (type ? ' ' + type : '');   // success / error color class
+        }
+
+        function onResumeChosen() {                               // file select chesinappudu name chupistundi
+            const f = document.getElementById('resume-file').files[0];
+            document.getElementById('resume-file-name').innerText = f ? f.name : 'Choose PDF';
+        }
+
+        async function uploadResume() {
+            const f = document.getElementById('resume-file').files[0];
+            if (!f) return setResumeStatus('Mundu PDF select cheyyandi.', 'error');
+
+            const btn = document.getElementById('resume-upload-btn');
+            const fd = new FormData();
+            fd.append('resume', f);                               // key 'resume' = Flask lo request.files.get('resume')
+
+            btn.disabled = true;                                  // double click avvakunda
+            setResumeStatus('Resume analyze avtundi...', '');
+            try {
+                const res = await fetch('/upload_resume', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setResumeStatus('✅ Resume ready! Skills: ' + data.profile.skills.slice(0, 5).join(', '), 'success');
+                    document.getElementById('resume-remove-btn').classList.remove('hidden');
+                } else {
+                    setResumeStatus('❌ ' + data.message, 'error');
+                }
+            } catch (e) {
+                setResumeStatus('❌ Server error, malli try cheyyandi.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function removeResume() {
+            await fetch('/remove_resume', { method: 'POST' });    // server session nunchi delete
+            document.getElementById('resume-file').value = "";
+            document.getElementById('resume-file-name').innerText = 'Choose PDF';
+            document.getElementById('resume-remove-btn').classList.add('hidden');
+            setResumeStatus('Resume remove ayyindi.', '');
+        }
+
+        async function checkResumeStatus() {                      // page refresh ayina resume status correct ga chupinchadaniki
+            try {
+                const res = await fetch('/resume_status');
+                const data = await res.json();
+                if (data.has_resume) {
+                    setResumeStatus('✅ Resume attached. Skills: ' + data.skills.join(', '), 'success');
+                    document.getElementById('resume-remove-btn').classList.remove('hidden');
+                } else {
+                    setResumeStatus('', '');
+                    document.getElementById('resume-remove-btn').classList.add('hidden');
+                }
+            } catch (e) { /* backend offline aithe silent */ }
         }
     </script>
 </body>
