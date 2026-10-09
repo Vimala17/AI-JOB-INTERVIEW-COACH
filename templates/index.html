@@ -365,6 +365,31 @@
         .resume-status { margin-top: 0.9rem; font-size: 0.88rem; min-height: 1.2rem; }
         .resume-status.success { color: #86efac; }
         .resume-status.error { color: #fca5a5; }
+
+        /* ----- PROGRESS DASHBOARD (NEW) ----- */
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 0 0 1.2rem; }
+        @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat-tile { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 1.4rem; padding: 1.1rem 0.8rem; text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-num.plain { background: none; -webkit-text-fill-color: #e2e8f0; font-size: 1.6rem; line-height: 2.6rem; }
+        .stat-num.plain.up { -webkit-text-fill-color: #86efac; }       /* ▲ green */
+        .stat-num.plain.down { -webkit-text-fill-color: #fca5a5; }     /* ▼ red (arrow kuda undi, color matrame kaadu) */
+        .stat-label { font-size: 0.8rem; opacity: 0.6; margin-top: 0.2rem; }
+        .panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 1.6rem; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; text-align: left; }
+        .panel h3 { font-size: 1rem; color: #e0d7ff; margin-bottom: 0.8rem; }
+        .trend-svg { width: 100%; height: auto; display: block; }
+        .role-row { display: grid; grid-template-columns: 170px 1fr 44px; gap: 0.8rem; align-items: center; margin-bottom: 0.6rem; font-size: 0.9rem; }
+        @media (max-width: 600px) { .role-row { grid-template-columns: 110px 1fr 40px; } }
+        .role-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .role-row .val { text-align: right; font-weight: 700; }
+        .pbar { height: 10px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
+        .pbar > span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+        .insight { font-size: 0.92rem; opacity: 0.85; margin-top: 0.9rem; }
+        .chip { display: inline-block; padding: 0.35rem 0.9rem; margin: 0 0.5rem 0.5rem 0; border-radius: 60px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; }
+        .qbars { display: flex; align-items: flex-end; gap: 6px; }
+        .qbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; font-size: 0.72rem; opacity: 0.9; }
+        .qbar { width: 100%; min-height: 3px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #ec4899, #8b5cf6); }
+        .empty-state { text-align: center; opacity: 0.65; padding: 2.5rem 0; }
     </style>
 </head>
 <body>
@@ -425,6 +450,7 @@
         <div class="glass-card wide">
             <div class="dashboard-header-controls">
                 <button class="minimal-action-btn" id="profile-symbol" onclick="show('sec-profile')"><i class="fas fa-user"></i> Profile</button>
+                <button class="minimal-action-btn" onclick="show('sec-progress')"><i class="fas fa-chart-line"></i> Progress</button>
                 <button class="minimal-action-btn" onclick="loadHistory()"><i class="fas fa-history"></i> My History</button>
             </div>
             <h1 class="gradient-text" style="font-size: 2.6rem; text-align: center; margin-bottom: 0.4rem;">Choose Your Career Field</h1>
@@ -480,7 +506,7 @@
             <h2 id="q-text" class="gradient-text" style="margin: 1.8rem 0 1rem 0; font-size:1.7rem;">Loading...</h2>
             <textarea id="ans" placeholder="Type your answer here..."></textarea>
             
-            <div class="flex-center" style="gap: 0.8rem; margin-top: 1rem;">
+            <div id="answer-buttons" class="flex-center" style="gap: 0.8rem; margin-top: 1rem;">
                 <button id="btn-submit" class="btn-primary" onclick="submit(event)" style="flex:2; min-width:140px;"><i class="fas fa-paper-plane"></i> Submit</button>
                 <button class="btn-icon" onclick="voice()"><i class="fas fa-microphone"></i></button>
                 <button class="btn-icon btn-danger" onclick="exitInterview()"><i class="fas fa-xmark"></i></button>
@@ -507,10 +533,24 @@
             <div id="history-container" style="margin-top: 2rem;"></div>
             <div class="flex-center" style="margin-top: 2rem; gap: 1rem;">
                 <button class="btn-secondary" onclick="show('sec-dash')">Back to Dashboard</button>
+                <button class="btn-secondary" onclick="show('sec-progress')"><i class="fas fa-chart-line"></i> Progress</button>
                 <button class="btn-danger" onclick="clearAllHistory()"><i class="fas fa-trash-can"></i> Clear All</button>
             </div>
         </div>
     </div>
+
+    <!-- PROGRESS DASHBOARD VIEW (NEW) -->
+    <div id="sec-progress" class="container hidden">
+        <div class="glass-card wide" style="max-width: 900px;">
+            <h1 class="gradient-text" style="font-size: 2.4rem; text-align: center;"><i class="fas fa-chart-line"></i> My Progress</h1>
+            <div id="progress-content" style="margin-top: 1.5rem;"></div>
+            <div class="flex-center" style="margin-top: 1.5rem; gap: 1rem;">
+                <button class="btn-secondary" onclick="show('sec-dash')">Back to Dashboard</button>
+                <button class="btn-secondary" onclick="loadHistory()"><i class="fas fa-history"></i> View History</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         let isSignup = false;
@@ -518,6 +558,7 @@
         let selectedRole = "";
         let selectedLang = "English";
         let currQ = {};
+        let questionScores = [];                                  // NEW: ee interview lo prati question score
 
         const domainVisualIcons = {
             "Software": "fas fa-code", "Hardware": "fas fa-microchip", "Education": "fas fa-graduation-cap",
@@ -572,6 +613,7 @@
             if(target) target.classList.remove('hidden'); 
             
             if(id === 'sec-dash') renderFields();
+            if(id === 'sec-progress') renderProgress();   // NEW: progress screen open ayinappudu chart render
             if(id === 'sec-role') checkResumeStatus();   // NEW: role screen ki vachinappudu resume status check
         }
 
@@ -653,6 +695,7 @@
 
         async function start() {
             if(!selectedRole) return alert("Select specialization!");
+            questionScores = [];                                  // NEW: kotha interview ki reset
             const fd = new FormData();
             fd.append('role', selectedRole);
             fd.append('language', selectedLang);
@@ -684,11 +727,11 @@
         }
 
         async function submit(event) {
-            const btn = event.target; 
+            const btn = event.currentTarget || event.target;
             const ans = document.getElementById('ans').value.trim();
             if(!ans) return alert("Type answer!");
-            btn.innerText = "Processing..."; btn.disabled = true; 
-            
+            btn.innerText = "Processing..."; btn.disabled = true;
+
             try {
                 const res = await fetch('/evaluate_answer', {
                     method: 'POST',
@@ -696,25 +739,24 @@
                     body: JSON.stringify({ answer: ans, keywords: currQ.keywords, question: currQ.question })
                 });
                 const data = await res.json();
-                if(data.is_final) { 
+                questionScores.push(Number(data.score));              // NEW: prati question score save (dashboard kosam)
+                if(data.is_final) {
                     document.getElementById('final-avg').innerText = data.avg_score;
-                    saveToHistory(data.avg_score);
-                    show('sec-res'); 
+                    saveToHistory(data.avg_score, questionScores);   // NEW: per-question scores kuda save
+                    show('sec-res');
                 } else { await loadQ(); }
             } catch(e) {
-                let mockScore = Math.floor(Math.random() * 4) + 6;
-                document.getElementById('final-avg').innerText = mockScore;
-                saveToHistory(mockScore);
-                show('sec-res');
-            } finally { 
-                btn.innerHTML = `<i class="fas fa-paper-plane"></i> Submit`; 
-                btn.disabled = false; 
+                // CHANGED: paata code random fake score (6-9) save chesedi. Adi dashboard stats ni ceduguduthundi, anduke alert matrame.
+                alert("Server error. Malli Submit cheyyandi.");
+            } finally {
+                btn.innerHTML = `<i class="fas fa-paper-plane"></i> Submit`;
+                btn.disabled = false;
             }
         }
 
-        function saveToHistory(score) {
+        function saveToHistory(score, qScores) {
             let history = JSON.parse(localStorage.getItem('interviewHistory') || "[]");
-            history.unshift({role: selectedRole, score: score, date: new Date().toLocaleString(), lang: selectedLang});
+            history.unshift({role: selectedRole, score: score, date: new Date().toLocaleString(), lang: selectedLang, qScores: qScores || []});
             localStorage.setItem('interviewHistory', JSON.stringify(history));
         }
 
@@ -819,6 +861,103 @@
                     document.getElementById('resume-remove-btn').classList.add('hidden');
                 }
             } catch (e) { /* backend offline aithe silent */ }
+        }
+
+        // ----- PROGRESS DASHBOARD (NEW) -----
+        function esc(s) {                                         // text ni HTML lo safe ga pettadaniki
+            return String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+        }
+        function r1(n) { return Math.round(n * 10) / 10; }        // 1 decimal ki round
+        function avgOf(a) { return a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0; }
+
+        function getHistory() {                                   // localStorage history (newest first)
+            try {
+                const raw = JSON.parse(localStorage.getItem('interviewHistory') || "[]");
+                return Array.isArray(raw) ? raw.map(h => ({ ...h, score: Number(h.score) || 0 })) : [];
+            } catch (e) { return []; }
+        }
+
+        function groupAvg(items, key) {                           // role leda language prakaram average
+            const g = {};
+            items.forEach(h => { const k = h[key] || "Unknown"; (g[k] = g[k] || []).push(h.score); });
+            return Object.keys(g).map(k => ({ name: k, avg: r1(avgOf(g[k])), count: g[k].length }));
+        }
+
+        function trendChartSVG(points) {                          // points: oldest-first, max 10
+            const W = 640, H = 240, L = 34, R = 16, T = 16, B = 30;
+            const pw = W - L - R, ph = H - T - B;
+            const x = i => r1(points.length === 1 ? L + pw / 2 : L + (pw * i) / (points.length - 1));
+            const y = v => r1(T + ph * (1 - v / 10));             // score 0-10 ni pixel ga marchadam
+            let svg = `<svg class="trend-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Score trend over your last ${points.length} interviews">`;
+            // gradient: userSpaceOnUse (line flat ga unna kuda color kanipistundi)
+            svg += `<defs><linearGradient id="lineGrad" gradientUnits="userSpaceOnUse" x1="${L}" y1="0" x2="${W - R}" y2="0"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#f472b6"/></linearGradient></defs>`;
+            for (let g = 0; g <= 10; g += 2) {                    // horizontal gridlines + y labels
+                svg += `<line x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}" stroke="rgba(255,255,255,0.08)"/>`;
+                svg += `<text x="${L - 8}" y="${y(g) + 4}" text-anchor="end" font-size="11" fill="rgba(255,255,255,0.5)">${g}</text>`;
+            }
+            if (points.length > 1) {
+                const path = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.score)}`).join(' ');
+                svg += `<path d="${path} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z" fill="url(#lineGrad)" fill-opacity="0.12"/>`;
+                svg += `<path d="${path}" fill="none" stroke="url(#lineGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+            }
+            points.forEach((p, i) => {                            // prati interview ki oka dot + hover tooltip
+                svg += `<circle cx="${x(i)}" cy="${y(p.score)}" r="5" fill="#0b0a1a" stroke="#f472b6" stroke-width="2.5"><title>${esc(p.date)} · ${esc(p.role)} · ${p.score}/10</title></circle>`;
+                svg += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.5)">#${p.n}</text>`;
+            });
+            return svg + `</svg>`;
+        }
+
+        function renderProgress() {
+            const box = document.getElementById('progress-content');
+            const history = getHistory();
+            if (!history.length) {                                // interviews ledu aithe empty state
+                box.innerHTML = `<div class="empty-state"><i class="fas fa-chart-line" style="font-size:2.5rem; margin-bottom:1rem;"></i><h3>Inka interviews ledu</h3><p style="margin-top:0.5rem;">Oka interview complete cheyyandi, mee progress ikkada chupistundi.</p></div>`;
+                return;
+            }
+
+            const chron = history.slice().reverse().map((h, i) => ({ ...h, n: i + 1 }));   // oldest-first + interview number
+            const scores = chron.map(h => h.score);
+            const latest = chron[chron.length - 1], prev = chron[chron.length - 2];
+            const delta = prev ? r1(latest.score - prev.score) : null;
+            const deltaClass = delta === null ? '' : (delta > 0 ? 'up' : (delta < 0 ? 'down' : ''));
+            const deltaText = delta === null ? '—' : (delta > 0 ? '▲ +' + delta : (delta < 0 ? '▼ ' + delta : '● 0'));
+            const points = chron.slice(-10);                      // chart lo last 10 interviews
+
+            const roles = groupAvg(chron, 'role').sort((a, b) => b.count - a.count || b.avg - a.avg).slice(0, 5);
+            const roleRows = roles.map(r => `
+                <div class="role-row">
+                    <span class="name" title="${esc(r.name)}">${esc(r.name)} <small style="opacity:0.5">×${r.count}</small></span>
+                    <div class="pbar"><span style="width:${r.avg * 10}%"></span></div>
+                    <span class="val">${r.avg}</span>
+                </div>`).join('');
+
+            const byAvg = groupAvg(chron, 'role').sort((a, b) => b.avg - a.avg);
+            let insight = '';
+            if (byAvg.length >= 2 && byAvg[0].name !== byAvg[byAvg.length - 1].name) {
+                const best = byAvg[0], weak = byAvg[byAvg.length - 1];
+                insight = `<p class="insight">💪 Strongest: <b>${esc(best.name)}</b> (${best.avg}) &nbsp;·&nbsp; 🎯 Practice more: <b>${esc(weak.name)}</b> (${weak.avg})</p>`;
+            }
+
+            const langChips = groupAvg(chron, 'lang').map(l => `<span class="chip">${esc(l.name)} · <b>${l.avg}</b> avg (${l.count})</span>`).join('');
+
+            let qHtml = '';                                       // last interview question-by-question (qScores unte matrame)
+            if (Array.isArray(latest.qScores) && latest.qScores.length) {
+                qHtml = `<div class="panel"><h3>Last interview: question by question</h3><div class="qbars">`
+                    + latest.qScores.map((v, i) => { v = Number(v) || 0; return `<div class="qbar-col"><span>${v}</span><div class="qbar" style="height:${v * 8}px"></div><span>Q${i + 1}</span></div>`; }).join('')
+                    + `</div></div>`;
+            }
+
+            box.innerHTML = `
+                <div class="stat-grid">
+                    <div class="stat-tile"><div class="stat-num">${chron.length}</div><div class="stat-label">Interviews</div></div>
+                    <div class="stat-tile"><div class="stat-num">${r1(avgOf(scores))}</div><div class="stat-label">Average score</div></div>
+                    <div class="stat-tile"><div class="stat-num">${Math.max(...scores)}</div><div class="stat-label">Best score</div></div>
+                    <div class="stat-tile"><div class="stat-num plain ${deltaClass}">${deltaText}</div><div class="stat-label">vs previous</div></div>
+                </div>
+                <div class="panel"><h3>Score trend (last ${points.length} interviews)</h3>${trendChartSVG(points)}</div>
+                <div class="panel"><h3>By role</h3>${roleRows}${insight}</div>
+                <div class="panel"><h3>By language</h3>${langChips}</div>
+                ${qHtml}`;
         }
     </script>
 </body>

@@ -178,8 +178,8 @@ def generate_question():
         question_text = res.get('question')
         keywords = res.get('keywords', [])
 
-        asked.append(question_text)
-        session['asked_questions'] = asked
+        asked.append((question_text or "")[:100])        # session cookie 4KB limit kosam short ga
+        session['asked_questions'] = asked[-6:]          # last 6 questions matrame (repeat avvakunda saripothundi)
         session['question_count'] = count + 1
         session.modified = True
 
@@ -210,7 +210,7 @@ def evaluate_answer():
     data = request.json
     user_ans = data.get('answer', '').lower()
     keywords = data.get('keywords', [])
-
+    
     score = 0
     if keywords:
         matches = [w for w in keywords if w.lower() in user_ans]
@@ -224,7 +224,7 @@ def evaluate_answer():
     avg = round(sum(session['scores']) / len(session['scores']), 1)
     is_final = (session['question_count'] >= 10)
     session.modified = True
-
+    
     return jsonify({"score": float(score), "is_final": bool(is_final), "avg_score": float(avg)})
 
 if __name__ == '__main__':
